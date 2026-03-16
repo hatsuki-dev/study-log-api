@@ -3,6 +3,10 @@
 FastAPIで作成した学習ログ管理APIです。  
 学習内容を記録・分析し、学習状況を可視化するバックエンドアプリです。
 
+## アプリ画面
+
+![Study Dashboard](images/dashboard.png)
+
 ---
 
 # 機能
