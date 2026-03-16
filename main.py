@@ -2,15 +2,19 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import func
+from datetime import date, timedelta
 
 import models
 import schemas
 from database import SessionLocal, engine
 
+# DB作成
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# CORS設定
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,13 +23,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ----------------------
 # DBセッション
+# ----------------------
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
 
 # ----------------------
 # Create（学習ログ作成）
@@ -40,18 +47,10 @@ def create_log(log: schemas.StudyLogCreate, db: Session = Depends(get_db)):
 
 
 # ----------------------
-# Read（一覧取得）# データパラメータも追加
-
+# Read（一覧取得）
 # ----------------------
-from datetime import date
-from typing import List,  Optional
-
-
-
-
 @app.get("/logs", response_model=List[schemas.StudyLog])
 def read_logs(tag: Optional[str] = None, db: Session = Depends(get_db)):
-
     query = db.query(models.StudyLog)
 
     if tag:
@@ -61,24 +60,23 @@ def read_logs(tag: Optional[str] = None, db: Session = Depends(get_db)):
 
     return logs
 
-# 機能の追加（合計学習時間）
 
-from sqlalchemy import func
-
+# ----------------------
+# 合計学習時間
+# ----------------------
 @app.get("/logs/total-time")
-
-
 def get_total_time(db: Session = Depends(get_db)):
     total = db.query(func.sum(models.StudyLog.study_time)).scalar()
-    
+
     if total is None:
         total = 0
 
     return {"total_time": total}
 
 
-# 機能追加（過去七日間のログAPI を追加）
-from datetime import date, timedelta
+# ----------------------
+# 過去7日間ログ
+# ----------------------
 @app.get("/logs/weekly", response_model=List[schemas.StudyLog])
 def get_weekly_logs(db: Session = Depends(get_db)):
 
@@ -92,10 +90,9 @@ def get_weekly_logs(db: Session = Depends(get_db)):
     return logs
 
 
-
-
-# 機能追加（学習統計API）
-from datetime import date, timedelta
+# ----------------------
+# 学習統計
+# ----------------------
 @app.get("/stats")
 def get_stats(db: Session = Depends(get_db)):
 
@@ -120,11 +117,9 @@ def get_stats(db: Session = Depends(get_db)):
     }
 
 
-
-
-
- # 機能追加（タグ別学習時間）
- 
+# ----------------------
+# タグ別学習時間
+# ----------------------
 @app.get("/stats/tags")
 def tag_stats(db: Session = Depends(get_db)):
 
@@ -141,8 +136,9 @@ def tag_stats(db: Session = Depends(get_db)):
     return result
 
 
-
+# ----------------------
 # 学習ランキング
+# ----------------------
 @app.get("/stats/ranking")
 def tag_ranking(db: Session = Depends(get_db)):
 
@@ -166,9 +162,12 @@ def tag_ranking(db: Session = Depends(get_db)):
 # ----------------------
 @app.get("/logs/{log_id}", response_model=schemas.StudyLog)
 def read_log(log_id: int, db: Session = Depends(get_db)):
+
     log = db.query(models.StudyLog).filter(models.StudyLog.id == log_id).first()
+
     if log is None:
         raise HTTPException(status_code=404, detail="Log not found")
+
     return log
 
 
@@ -177,6 +176,7 @@ def read_log(log_id: int, db: Session = Depends(get_db)):
 # ----------------------
 @app.put("/logs/{log_id}", response_model=schemas.StudyLog)
 def update_log(log_id: int, log: schemas.StudyLogCreate, db: Session = Depends(get_db)):
+
     db_log = db.query(models.StudyLog).filter(models.StudyLog.id == log_id).first()
 
     if db_log is None:
@@ -189,6 +189,7 @@ def update_log(log_id: int, log: schemas.StudyLogCreate, db: Session = Depends(g
 
     db.commit()
     db.refresh(db_log)
+
     return db_log
 
 
@@ -197,6 +198,7 @@ def update_log(log_id: int, log: schemas.StudyLogCreate, db: Session = Depends(g
 # ----------------------
 @app.delete("/logs/{log_id}")
 def delete_log(log_id: int, db: Session = Depends(get_db)):
+
     db_log = db.query(models.StudyLog).filter(models.StudyLog.id == log_id).first()
 
     if db_log is None:
@@ -208,7 +210,9 @@ def delete_log(log_id: int, db: Session = Depends(get_db)):
     return {"message": "deleted"}
 
 
-# 機能追加（AI アドバイス）
+# ----------------------
+# AIアドバイス
+# ----------------------
 @app.get("/ai/advice")
 def get_ai_advice(db: Session = Depends(get_db)):
 
