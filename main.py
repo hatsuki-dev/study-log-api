@@ -10,7 +10,11 @@ from database import SessionLocal, engine
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-from fastapi.middleware.cors import CORSMiddlewareapp.add_middleware(
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
